@@ -1,12 +1,11 @@
 {
-  "name": "wab",
+  "name": "runestone",
   "version": "1.0.0",
-  "description": "WAB - Node.js web application",
+  "description": "위치룬 - witch rune ritual web",
   "type": "module",
-  "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js"
   },
   "engines": {
     "node": ">=24.15.0"

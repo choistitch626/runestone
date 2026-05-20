@@ -118,7 +118,7 @@ function transitionNext() {
   veilEl.classList.add("is-active");
 
   setTimeout(() => {
-    window.location.href = "/home";
+    window.location.href = "home.html";
   }, 1900);
 }
 

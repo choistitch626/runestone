@@ -4,7 +4,7 @@ import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PORT = process.env.PORT ?? 3000;
-const SRC = fileURLToPath(new URL(".", import.meta.url));
+const ROOT = fileURLToPath(new URL(".", import.meta.url));
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -15,13 +15,15 @@ const MIME = {
 };
 
 const PAGES = {
-  "/": "html/intro.html",
-  "/intro": "html/intro.html",
-  "/home": "html/home.html",
+  "/": "index.html",
+  "/index.html": "index.html",
+  "/intro": "index.html",
+  "/home": "home.html",
+  "/home.html": "home.html",
 };
 
 async function sendFile(res, relativePath) {
-  const filePath = join(SRC, relativePath);
+  const filePath = join(ROOT, relativePath);
   const ext = extname(filePath);
   const body = await readFile(filePath);
   res.writeHead(200, { "Content-Type": MIME[ext] ?? "application/octet-stream" });
@@ -30,7 +32,7 @@ async function sendFile(res, relativePath) {
 
 async function streamVideo(req, res, relativePath) {
   const { createReadStream } = await import("node:fs");
-  const filePath = join(SRC, relativePath);
+  const filePath = join(ROOT, relativePath);
   const fileStat = await stat(filePath);
   const fileSize = fileStat.size;
   const range = req.headers.range;
@@ -107,17 +109,17 @@ async function handleRequest(req, res) {
     return;
   }
 
-  if (pathname.startsWith("/css/") || pathname.startsWith("/js/")) {
-    await sendFile(res, pathname.slice(1));
-    return;
-  }
-
-  if (pathname.startsWith("/assets/")) {
+  if (
+    pathname.startsWith("/css/") ||
+    pathname.startsWith("/js/") ||
+    pathname.startsWith("/assets/")
+  ) {
+    const relativePath = pathname.slice(1);
     if (pathname.endsWith(".mp4")) {
-      await streamVideo(req, res, pathname.slice(1));
+      await streamVideo(req, res, relativePath);
       return;
     }
-    await sendFile(res, pathname.slice(1));
+    await sendFile(res, relativePath);
     return;
   }
 
