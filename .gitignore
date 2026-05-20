@@ -1,6 +1,4 @@
 node_modules/
-assets/video/*.mp4
-src/
 .env
 .env.*
 !.env.example
