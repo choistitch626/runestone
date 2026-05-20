@@ -1,0 +1,125 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ritual {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.ritual__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+
+.ritual__dim {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  background: #000;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 1s ease;
+}
+
+.ritual__dim.is-hidden {
+  opacity: 0;
+}
+
+/* 브라우저 기본 재생 UI 숨김 */
+.ritual__video::-webkit-media-controls {
+  display: none !important;
+}
+
+.ritual__video::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+
+.ritual__video::-webkit-media-controls-panel {
+  display: none !important;
+}
+
+.ritual__video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+.ritual__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.ritual__message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 4;
+  margin: 0;
+  padding: 0;
+  font-family: "Nanum Gothic", "나눔고딕", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: #f5f0e6;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 2px 8px rgba(0, 0, 0, 0.85),
+    0 0 12px rgba(0, 0, 0, 0.7);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.ritual__message.is-visible {
+  opacity: 1;
+}
+
+.ritual__veil {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.8s ease-in;
+}
+
+.ritual__veil.is-active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.ritual.is-complete {
+  cursor: default;
+}
+
+.ritual.is-complete .ritual__canvas {
+  pointer-events: none;
+}
