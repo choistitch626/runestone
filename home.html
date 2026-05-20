@@ -4,22 +4,35 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>위치룬</title>
-    <style>
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        min-height: 100dvh;
-        display: grid;
-        place-items: center;
-        background: #0a0a0a;
-        color: #f5f0e6;
-        font-family: "Nanum Gothic", "나눔고딕", sans-serif;
-      }
-    </style>
+    <link rel="stylesheet" href="css/home.css" />
   </head>
   <body>
-    <p>다음 페이지</p>
+    <div class="ritual" id="ritual">
+      <video
+        class="ritual__video"
+        id="ritual-video"
+        src="assets/video/ritual.mp4"
+        muted
+        autoplay
+        loop
+        playsinline
+        preload="auto"
+        disablepictureinpicture
+        disableremoteplayback
+      ></video>
+
+      <div class="ritual__dim" id="ritual-dim" aria-hidden="true"></div>
+
+      <!-- [2단계] 영상 속 보라 캔들 불꽃 위치에 가상 불꽃만 표시
+      <div class="flame" id="virtual-flame" aria-hidden="true">
+        <div class="flame__inner">
+          <div class="flame__glow"></div>
+          <div class="flame__body"></div>
+          <div class="flame__core"></div>
+        </div>
+      </div> -->
+    </div>
+
+    <script type="module" src="js/home.js"></script>
   </body>
 </html>

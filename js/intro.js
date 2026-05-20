@@ -1,3 +1,5 @@
+import { CANDLE } from "./candle-position.js";
+
 const ritual = document.getElementById("ritual");
 const canvas = document.getElementById("ritual-canvas");
 const messageEl = document.getElementById("ritual-message");
@@ -6,7 +8,6 @@ const dimEl = document.getElementById("ritual-dim");
 const video = document.getElementById("ritual-video");
 
 const ctx = canvas.getContext("2d");
-const CANDLE = { x: 0.5, y: 0.52 };
 
 let points = [];
 let drawing = false;
@@ -16,8 +17,137 @@ let messageTimer = null;
 const LINE = {
   color: "rgba(230, 236, 245, 0.95)",
   glow: "rgba(220, 230, 255, 0.9)",
-  width: 8,
+  width: 3,
 };
+
+/* ── Web Audio: 밤바다 / 잔잔한 파도 (파일 없음) ── */
+let oceanCtx = null;
+let oceanMaster = null;
+let oceanStarted = false;
+let waveTimer = null;
+
+function createBrownNoise(ctx, seconds = 3) {
+  const len = ctx.sampleRate * seconds;
+  const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < len; i++) {
+    const white = Math.random() * 2 - 1;
+    last = (last + 0.04 * white) / 1.04;
+    data[i] = last * 2.8;
+  }
+  return buffer;
+}
+
+function initOceanAudio() {
+  if (oceanCtx) return;
+
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  oceanCtx = ctx;
+
+  oceanMaster = ctx.createGain();
+  oceanMaster.gain.value = 0;
+  oceanMaster.connect(ctx.destination);
+
+  const deepSrc = ctx.createBufferSource();
+  deepSrc.buffer = createBrownNoise(ctx, 4);
+  deepSrc.loop = true;
+
+  const deepFilter = ctx.createBiquadFilter();
+  deepFilter.type = "lowpass";
+  deepFilter.frequency.value = 280;
+  deepFilter.Q.value = 0.6;
+
+  const deepGain = ctx.createGain();
+  deepGain.gain.value = 0.55;
+
+  deepSrc.connect(deepFilter);
+  deepFilter.connect(deepGain);
+  deepGain.connect(oceanMaster);
+  deepSrc.start();
+
+  const surfSrc = ctx.createBufferSource();
+  surfSrc.buffer = createBrownNoise(ctx, 2);
+  surfSrc.loop = true;
+
+  const surfFilter = ctx.createBiquadFilter();
+  surfFilter.type = "bandpass";
+  surfFilter.frequency.value = 520;
+  surfFilter.Q.value = 0.4;
+
+  const surfGain = ctx.createGain();
+  surfGain.gain.value = 0.12;
+
+  surfSrc.connect(surfFilter);
+  surfFilter.connect(surfGain);
+  surfGain.connect(oceanMaster);
+  surfSrc.start();
+
+  const nightTone = ctx.createOscillator();
+  nightTone.type = "sine";
+  nightTone.frequency.value = 48;
+  const nightGain = ctx.createGain();
+  nightGain.gain.value = 0.04;
+  nightTone.connect(nightGain);
+  nightGain.connect(oceanMaster);
+  nightTone.start();
+
+  scheduleWaveSwell();
+}
+
+function scheduleWaveSwell() {
+  if (!oceanCtx || !oceanMaster) return;
+
+  const ctx = oceanCtx;
+  const now = ctx.currentTime;
+  const cycle = 4 + Math.random() * 2;
+  const peak = 0.14 + Math.random() * 0.08;
+
+  oceanMaster.gain.cancelScheduledValues(now);
+  oceanMaster.gain.setValueAtTime(oceanMaster.gain.value, now);
+  oceanMaster.gain.linearRampToValueAtTime(peak, now + cycle * 0.45);
+  oceanMaster.gain.linearRampToValueAtTime(0.05, now + cycle * 0.85);
+  oceanMaster.gain.linearRampToValueAtTime(0.1, now + cycle);
+
+  waveTimer = setTimeout(scheduleWaveSwell, cycle * 1000 - 80);
+}
+
+async function unlockAudioContext() {
+  initOceanAudio();
+  if (!oceanCtx) return false;
+
+  if (oceanCtx.state === "suspended") {
+    try {
+      await oceanCtx.resume();
+    } catch {
+      return false;
+    }
+  }
+  return oceanCtx.state === "running";
+}
+
+async function startOceanAudio() {
+  if (oceanStarted) return;
+  const ready = await unlockAudioContext();
+  if (!ready || !oceanMaster) return;
+
+  const now = oceanCtx.currentTime;
+  oceanMaster.gain.cancelScheduledValues(now);
+  oceanMaster.gain.setValueAtTime(0, now);
+  oceanMaster.gain.linearRampToValueAtTime(0.12, now + 1.8);
+
+  oceanStarted = true;
+}
+
+function fadeOutOceanAudio() {
+  if (!oceanCtx || !oceanMaster) return;
+
+  clearTimeout(waveTimer);
+  const now = oceanCtx.currentTime;
+  oceanMaster.gain.cancelScheduledValues(now);
+  oceanMaster.gain.setValueAtTime(oceanMaster.gain.value, now);
+  oceanMaster.gain.linearRampToValueAtTime(0, now + 1.6);
+}
 
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
@@ -54,7 +184,7 @@ function redrawPath() {
   ctx.lineWidth = LINE.width;
   ctx.strokeStyle = LINE.color;
   ctx.shadowColor = LINE.glow;
-  ctx.shadowBlur = 28;
+  ctx.shadowBlur = 20;
 
   ctx.beginPath();
   ctx.moveTo(points[0].x, points[0].y);
@@ -116,6 +246,7 @@ function transitionNext() {
   completed = true;
   ritual.classList.add("is-complete");
   veilEl.classList.add("is-active");
+  fadeOutOceanAudio();
 
   setTimeout(() => {
     window.location.href = "home.html";
@@ -196,14 +327,16 @@ function hideDim() {
 async function attemptPlay() {
   if (!video.paused && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
     hideDim();
+    await startOceanAudio();
     return;
   }
 
   try {
     await video.play();
     hideDim();
+    await startOceanAudio();
   } catch {
-    /* Safari: 사용자 제스처 후 재시도 */
+    /* Safari: 첫 제스처 시 재시도 */
   }
 }
 
@@ -217,7 +350,14 @@ video.addEventListener("loadedmetadata", onVideoReady);
 video.addEventListener("loadeddata", onVideoReady);
 video.addEventListener("canplay", onVideoReady);
 video.addEventListener("canplaythrough", onVideoReady);
-video.addEventListener("playing", hideDim);
+video.addEventListener("playing", () => {
+  hideDim();
+  if (oceanCtx?.state === "suspended") {
+    oceanCtx.resume().then(() => startOceanAudio());
+  } else {
+    startOceanAudio();
+  }
+});
 
 video.addEventListener("waiting", () => {
   if (isSafari && video.paused) onVideoReady();
@@ -233,7 +373,8 @@ function resumeOnGesture() {
 document.addEventListener("touchstart", resumeOnGesture, { once: true, passive: true });
 document.addEventListener("click", resumeOnGesture, { once: true });
 
-canvas.addEventListener("touchstart", resumeOnGesture, { passive: true });
-canvas.addEventListener("mousedown", resumeOnGesture);
+initOceanAudio();
+attemptPlay();
+setTimeout(() => startOceanAudio(), 300);
 
 resizeCanvas();
